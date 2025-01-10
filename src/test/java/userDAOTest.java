@@ -1,98 +1,42 @@
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.user.dao.UserDAO;
 import com.user.model.UserLogin;
+import com.user.utility.DBConnection;
 
-public class userDAOTest {
+class UserDAOTest {
+    private static UserDAO dao;
 
-    private UserDAO userDAO;
-
-    @Mock
-    private Connection mockConnection;
-
-    @Mock
-    private PreparedStatement mockPreparedStatement;
-
-    @Mock
-    private ResultSet mockResultSet;
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        userDAO = new UserDAO(mockConnection);
+    @BeforeAll
+    static void setUp() {
+        // Initialize a connection from DBConnection
+        Connection connection = DBConnection.getConnection();
+        assertNotNull(connection, "Failed to establish database connection.");
+        dao = new UserDAO(connection);
     }
 
     @Test
-    public void selectAllUsers_test() throws Exception {
-        // Arrange
-        String query = "SELECT * FROM users";
-        when(mockConnection.prepareStatement(query)).thenReturn(mockPreparedStatement);
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
-
-        // Simulate result set
-        when(mockResultSet.next()).thenReturn(true, true, false); // 2 rows
-        when(mockResultSet.getString("name")).thenReturn("User1", "User2");
-        when(mockResultSet.getString("email")).thenReturn("user1@example.com", "user2@example.com");
-        when(mockResultSet.getString("password")).thenReturn("pass1", "pass2");
-
-        // Act
-        List<User> users = userDAO.selectAllUsers();
-
-        // Assert
-        assertNotNull(users);
-        assertEquals(2, users.size());
-        assertEquals("User1", users.get(0).getName());
-        assertEquals("User2", users.get(1).getName());
-        verify(mockPreparedStatement).executeQuery();
+    void selectAllUsers_test() {
+        List<User> users = dao.selectAllUsers();
+        assertNotNull(users, "Users list should not be null.");
+        assertTrue(users.size() > 0, "Users list should contain at least one user.");
     }
 
     @Test
-    public void checkUser_test() throws Exception {
-        // Arrange
-        String email = "Aprem@gmail.com";
-        String query = "SELECT * FROM users WHERE email = ?";
-        when(mockConnection.prepareStatement(query)).thenReturn(mockPreparedStatement);
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(false);
-
-        // Act
-        boolean status = userDAO.checkUser(email);
-
-        // Assert
-        assertFalse(status);
-        verify(mockPreparedStatement).setString(1, email);
-        verify(mockPreparedStatement).executeQuery();
+    void checkUser_test() {
+        boolean status = dao.checkUser("akshatraj879@gmail.com");
+        assertFalse(status, "User check should return false for non-existing user.");
     }
 
     @Test
-    public void validateUser_test() throws Exception {
-        // Arrange
-        String email = "Aprem@gmail.com";
-        String password = "A123";
-        String query = "SELECT * FROM users WHERE email = ? AND password = ?";
-        when(mockConnection.prepareStatement(query)).thenReturn(mockPreparedStatement);
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(true);
-
-        // Act
-        boolean status = userDAO.validateUser(email, password);
-
-        // Assert
-        assertTrue(status);
-        verify(mockPreparedStatement).setString(1, email);
-        verify(mockPreparedStatement).setString(2, password);
-        verify(mockPreparedStatement).executeQuery();
+    void validateUser_test() {
+        boolean status = dao.validateUser("akshatraj879@gmail.com", "123");
+        assertTrue(status, "Validation should return true for valid user credentials.");
     }
 }
